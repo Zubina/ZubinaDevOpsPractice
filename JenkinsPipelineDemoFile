@@ -1,15 +1,27 @@
 node {
     def mvnHome
+    echo 'Pipeline Execution Started......'
+        environment {		
+        APP_NAME = "ZubinaPracticeApp"		
+        //VERSION = "${BUILD_NUMBER}"		
+        DEV_ENV = "dev"		
+        QA_ENV  = "qa"		
+        PROD_ENV = "prod"		
+    }		
+
     stage('Preparation') { // for display purposes
+    echo 'Preparation Started......'
         // Get some code from a GitHub repository
         git 'https://github.com/jglick/simple-maven-project-with-tests.git'
         // Get the Maven tool.
         // ** NOTE: This 'M3' Maven tool must be configured
         // **       in the global configuration.
         mvnHome = tool 'M3'
+        sleep 5
         echo 'Preparation Completed (From Git)......'
     }
     stage('Build') {
+        echo 'Build Started......'
         // Run the maven build
         withEnv(["MVN_HOME=$mvnHome"]) {
             if (isUnix()) {
@@ -17,24 +29,39 @@ node {
             } else {
                 bat(/"%MVN_HOME%\bin\mvn" -Dmaven.test.failure.ignore clean package/)
             }
+            sleep 5
             echo 'Build Completed (From Git)......'
         }
     }
     stage('Unit Test') {
+        echo 'Unit Test Started......'
         junit '**/target/surefire-reports/TEST-*.xml'
         archiveArtifacts 'target/*.jar'
+        sleep 5
         echo 'Unit Test Completed (From Git)......'
     }
     retry(5){
     stage('Deploy') {
+        echo 'Deployment to QA Started......'
         junit '**/target/surefire-reports/TEST-*.xml'
         archiveArtifacts 'target/*.jar'
+        sleep 5
         echo 'Deployment Completed (From Git)......'
     }}
 
     timestamps {
     it.set(new Date().time)
     }
-//writeFile file: 'C:\\Users\\alirf\\.jenkins\\workspace', text: 'Pipeline execution completed.'
-echo 'Pipeline Execution Completed (Pipeline File is taken from Git)......'
+    post {			
+        success {			
+            writeFile file: 'C:\\Users\\alirf\\.jenkins\\workspace', text: 'Pipeline execution completed.'
+            sleep 5
+            echo 'Pipeline Execution Completed (From Git)......'
+            mail bcc: '', body: 'Jenkins Pipeline is executed', cc: '', from: '', replyTo: '', subject: 'JENKINS PRACTICE-PASS', to: 'zubina.mjcet73326@gmail.com'
+                }
+        failure {
+            echo 'Pipeline Execution Failed (From Git)......'
+            mail bcc: '', body: 'Jenkins Pipeline is executed', cc: '', from: '', replyTo: '', subject: 'JENKINS PRACTICE-FAIL', to: 'zubina.mjcet73326@gmail.com'
+                 }
+        }
 }
